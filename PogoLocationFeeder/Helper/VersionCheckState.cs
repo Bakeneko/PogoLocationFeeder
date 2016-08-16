@@ -1,6 +1,25 @@
-﻿#region using directives
+﻿/*
+PogoLocationFeeder gathers pokemon data from various sources and serves it to connected clients
+Copyright (C) 2016  PogoLocationFeeder Development Team <admin@pokefeeder.live>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#region using directives
 
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Reflection;
 using System.Text.RegularExpressions;
@@ -42,11 +61,17 @@ namespace PoGoLocationFeeder.Helper
                 Log.Info("Great! You already have the newest version (v{0}, or later master)",
                     RemoteVersion.ToString().Remove(RemoteVersion.ToString().Length - 2));
             }
-            else
-            {
-                Log.Info("An update is available! Get the latest release at {0}", LatestRelease);
-                if (GlobalSettings.Output != null)
-                    GlobalSettings.Output.SetStatus($"Version outdated! {RemoteVersion} is available");
+            else {
+                try {
+                    Process.Start("autoupdate.exe");
+                    var t = Process.GetCurrentProcess();
+                    t.Kill();
+
+                } catch (Exception) {
+                    Log.Info("An update is available! Get the latest release at {0}", LatestRelease);
+                    if (GlobalSettings.Output != null)
+                        GlobalSettings.Output.SetStatus($"Version outdated! {RemoteVersion} is available");
+                }
             }
         }
 

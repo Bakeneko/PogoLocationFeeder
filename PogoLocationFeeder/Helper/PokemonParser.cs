@@ -1,4 +1,22 @@
-﻿using System;
+﻿/*
+PogoLocationFeeder gathers pokemon data from various sources and serves it to connected clients
+Copyright (C) 2016  PogoLocationFeeder Development Team <admin@pokefeeder.live>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using POGOProtos.Enums;
@@ -12,17 +30,40 @@ namespace PogoLocationFeeder.Helper
         {
             PokemonAlternativeNames.CreateAllMatches(PokemonId.Farfetchd, new HashSet<string> {"Farfetch'd"},
                 new HashSet<string> {"Farfetch"}),
-            PokemonAlternativeNames.CreateAllMatches(PokemonId.MrMime, new HashSet<string> {"mr.Mime", "mr mime"},
-                new HashSet<string> {"Mime"})
+            PokemonAlternativeNames.CreateAllMatches(PokemonId.MrMime, new HashSet<string> {"mr.Mime", "mr mime","Mr.Maleime"},
+                new HashSet<string> {"Mime"}),
+            PokemonAlternativeNames.CreateAllMatches(PokemonId.NidoranMale, new HashSet<string> {"nidoranm"}, new HashSet<string>()),
+            PokemonAlternativeNames.CreateAllMatches(PokemonId.NidoranFemale, new HashSet<string> {"nidoranf"}, new HashSet<string>())
+
         };
 
-        public static PokemonId ParsePokemon(string input)
+        public static List<PokemonId> ParsePokemons(List<string> inputs)
+        {
+            List<PokemonId> newPokemonIds = new List<PokemonId>();
+            if (inputs != null)
+            {
+
+                foreach (var input in inputs)
+                {
+                    try
+                    {
+                        newPokemonIds.Add(ParsePokemon(input, false, true));
+                    }
+                    catch (Exception e)
+                    {
+                    }
+
+                }
+            }
+            return newPokemonIds;
+        }
+        public static PokemonId ParsePokemon(string input, bool showError = false, bool throwException = false)
         {
             foreach (var name in Enum.GetNames(typeof(PokemonId)))
             {
                 if (MatchesPokemonNameExactly(input, name))
                 {
-                    return (PokemonId) Enum.Parse(typeof(PokemonId), name);
+                    return (PokemonId) Enum.Parse(typeof(PokemonId), name, true);
                 }
             }
             foreach (var pokemonAlternativeNames in PokemonAlternativeNamesList)
@@ -49,7 +90,14 @@ namespace PogoLocationFeeder.Helper
                 }
             }
 
-
+            if (showError)
+            {
+                Log.Error($"No pokemon found with name {input}");
+            }
+            if (throwException)
+            {
+                throw new Exception($"No pokemon found with name {input}");
+            }
             return PokemonId.Missingno;
         }
 

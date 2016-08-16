@@ -1,12 +1,27 @@
-﻿using System;
+﻿/*
+PogoLocationFeeder gathers pokemon data from various sources and serves it to connected clients
+Copyright (C) 2016  PogoLocationFeeder Development Team <admin@pokefeeder.live>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net;
 using System.Net.Http;
 using CloudFlareUtilities;
 using Newtonsoft.Json;
 using PogoLocationFeeder.Helper;
-using POGOProtos.Enums;
 
 namespace PogoLocationFeeder.Repository
 {
@@ -14,50 +29,32 @@ namespace PogoLocationFeeder.Repository
     {
         //private const int timeout = 20000;
 
-        private const string URL = "http://pokesnipers.com/api/v1/pokemon.json";
-        private const string Channel = "Pokesnipers";
-        private readonly List<PokemonId> _pokemonIdsToFind;
+        private const string URL = "http://www.pokesnipers.com/api/v1/pokemon.json?referrer=home";
+        public const string Channel = "Pokesnipers";
 
-        public PokeSniperRarePokemonRepository(List<PokemonId> pokemonIdsToFind)
+        public PokeSniperRarePokemonRepository()
         {
-            _pokemonIdsToFind = pokemonIdsToFind;
         }
 
         public List<SniperInfo> FindAll()
         {
             try
             {
-                var request = WebRequest.CreateHttp(URL);
-                request.Accept = "application/json";
-                request.Method = "GET";
-                request.Timeout = 20000;
+                var handler = new ClearanceHandler();
 
-                using (var response = request.GetResponse())
+                // Create a HttpClient that uses the handler.
+                using (var client = new HttpClient(handler))
                 {
-                    using (var reader = new StreamReader(response.GetResponseStream()))
-                    {
-                        return GetJsonList(reader.ReadToEnd());
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                try
-                {
-                    var handler = new ClearanceHandler();
-
-                    // Create a HttpClient that uses the handler.
-                    var client = new HttpClient(handler);
 
                     // Use the HttpClient as usual. Any JS challenge will be solved automatically for you.
                     var content = client.GetStringAsync(URL).Result;
                     return GetJsonList(content);
                 }
-                catch (Exception)
-                {
-                    Log.Debug("Pokesnipers API error: {0}", e.Message);
-                    return null;
-                }
+            }
+            catch (Exception e)
+            {
+                Log.Debug("Pokesnipers API error: {0}", e.Message);
+                return null;
             }
         }
 
@@ -68,7 +65,7 @@ namespace PogoLocationFeeder.Repository
 
         private List<SniperInfo> GetJsonList(string reader)
         {
-            var wrapper = JsonConvert.DeserializeObject<Wrapper>(reader);
+            var wrapper = JsonConvert.DeserializeObject<Wrapper>(reader, new JsonSerializerSettingsCultureInvariant());
             var list = new List<SniperInfo>();
             foreach (var result in wrapper.results)
             {
@@ -81,24 +78,23 @@ namespace PogoLocationFeeder.Repository
             return list;
         }
 
+
+
         private SniperInfo Map(Result result)
         {
             var sniperInfo = new SniperInfo();
             var pokemonId = PokemonParser.ParsePokemon(result.name);
-            if (!_pokemonIdsToFind.Contains(pokemonId))
-            {
-                return null;
-            }
             sniperInfo.Id = pokemonId;
             var geoCoordinates = GeoCoordinatesParser.ParseGeoCoordinates(result.coords);
             if (geoCoordinates == null)
             {
                 return null;
             }
-            sniperInfo.Latitude = geoCoordinates.Latitude;
-            sniperInfo.Longitude = geoCoordinates.Longitude;
+            sniperInfo.Latitude = Math.Round(geoCoordinates.Latitude, 7);
+            sniperInfo.Longitude = Math.Round(geoCoordinates.Longitude, 7);
 
             sniperInfo.ExpirationTimestamp = Convert.ToDateTime(result.until);
+            sniperInfo.ChannelInfo = new ChannelInfo { server = Channel };
             return sniperInfo;
         }
     }

@@ -1,4 +1,22 @@
-﻿using System;
+﻿/*
+PogoLocationFeeder gathers pokemon data from various sources and serves it to connected clients
+Copyright (C) 2016  PogoLocationFeeder Development Team <admin@pokefeeder.live>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -12,12 +30,12 @@ namespace PogoLocationFeeder.Repository
     public class TrackemonRarePokemonRepository : IRarePokemonRepository
     {
         private const int Timeout = 20000;
-        private const string Channel = "Trackemon";
+        public const string Channel = "Trackemon";
         private readonly List<PokemonId> _pokemonIdsToFind;
 
-        public TrackemonRarePokemonRepository(List<PokemonId> pokemonIdsToFind)
+        public TrackemonRarePokemonRepository()
         {
-            _pokemonIdsToFind = pokemonIdsToFind;
+            this._pokemonIdsToFind = RarePokemonsFactory.createRarePokemonList();
         }
 
         public List<SniperInfo> FindAll()
@@ -45,11 +63,6 @@ namespace PogoLocationFeeder.Repository
             }
 
             return list;
-        }
-
-        public string GetChannel()
-        {
-            return Channel;
         }
 
         private static List<SniperInfo> FindSubSetOfPokemon(List<PokemonId> pokemomnIds, TrackemonSession session)
@@ -97,9 +110,9 @@ namespace PogoLocationFeeder.Repository
             var pokemonId = PokemonParser.ParseById(result.id);
             sniperInfo.Id = pokemonId;
 
-            sniperInfo.Latitude = result.latitude;
-            sniperInfo.Longitude = result.longitude;
-
+            sniperInfo.Latitude = Math.Round(result.latitude, 7);
+            sniperInfo.Longitude = Math.Round(result.longitude, 7);
+            sniperInfo.ChannelInfo = new ChannelInfo { server = Channel };
 
             sniperInfo.ExpirationTimestamp = DateTime.Now.AddTicks(result.expiration);
             return sniperInfo;
